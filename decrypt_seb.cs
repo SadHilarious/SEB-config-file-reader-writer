@@ -18,16 +18,73 @@ public static class Main
 
     // Public key hash identifier length
     private const int PUBLIC_KEY_HASH_LENGTH = 20;
-    public static void main()
+    public static void main(string[] args)
     {
-        string fileName = "<.seb config file path>";
+        string fileName;
+        if (args.Length > 0)
+        {
+            fileName = args[0];
+        }
+        else
+        {
+            Console.Write("Enter the path to your .seb configuration file: ");
+            fileName = Console.ReadLine();
+            if (string.IsNullOrWhiteSpace(fileName))
+            {
+                Console.WriteLine("Error: File path cannot be empty.");
+                return;
+            }
+        }
+
+        if (!System.IO.File.Exists(fileName))
+        {
+            Console.WriteLine($"Error: File '{fileName}' does not exist.");
+            return;
+        }
+
         bool forEditing = false;
         string filePassword = "";
         bool passwordIsHash = false;
         X509Certificate2 fileCertificateRef = null;
-        var settings = SEBSettings.ReadSebConfigurationFile(fileName, forEditing, ref filePassword, ref passwordIsHash, ref fileCertificateRef);
-        // WriteSebConfigurationFile(String fileName, string filePassword, bool passwordIsHash, X509Certificate2 fileCertificateRef, bool useAsymmetricOnlyEncryption, SEBSettings.sebConfigPurposes configPurpose, bool forEditing = false)
-        SEBSettings.WriteSebConfigurationFile(fileName + ".new.seb", filePassword, passwordIsHash, fileCertificateRef, false, SEBSettings.sebConfigPurposes.sebConfigPurposeStartingExam, false);
-        Console.WriteLine("Written to " + fileName + ".new.seb");
+        try
+        {
+            var settings = SEBSettings.ReadSebConfigurationFile(fileName, forEditing, ref filePassword, ref passwordIsHash, ref fileCertificateRef);
+            string outputFileName = fileName + ".new.seb";
+            bool success = SEBSettings.WriteSebConfigurationFile(outputFileName, filePassword, passwordIsHash, fileCertificateRef, false, SEBSettings.sebConfigPurposes.sebConfigPurposeStartingExam, false);
+            if (success)
+            {
+                Console.WriteLine("Successfully decoded and saved to: " + outputFileName);
+                
+                Console.WriteLine("\n--- SEB Configuration Security Keys ---");
+                try
+                {
+                    string configKey = SEBProtectionController.ComputeConfigurationKey();
+                    Console.WriteLine("Configuration Key (CK): " + configKey);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Failed to compute Configuration Key: " + ex.Message);
+                }
+
+                try
+                {
+                    string bek = SEBProtectionController.ComputeBrowserExamKey();
+                    Console.WriteLine("Browser Exam Key (BEK) : " + bek);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Failed to compute Browser Exam Key: " + ex.Message);
+                }
+                Console.WriteLine("---------------------------------------\n");
+            }
+            else
+            {
+                Console.WriteLine("Failed to write decoded file.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("An error occurred: " + ex.Message);
+        }
     }
 }

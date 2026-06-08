@@ -578,7 +578,16 @@ public class SEBProtectionController
         var salt = (byte[])SEBSettings.settingsCurrent[SEBSettings.KeyExamKeySalt];
         // var signature = certificate?.GetCertHashString();
         String? signature = null;
-        var version = FileVersionInfo.GetVersionInfo(executable.Location).FileVersion;
+        string? version = "3.4.1.0";
+        string path = executable.Location;
+        if (string.IsNullOrEmpty(path))
+        {
+            path = System.Environment.ProcessPath ?? "";
+        }
+        if (!string.IsNullOrEmpty(path) && System.IO.File.Exists(path))
+        {
+            version = FileVersionInfo.GetVersionInfo(path).FileVersion;
+        }
 
         Console.WriteLine("Initializing browser exam key...");
 

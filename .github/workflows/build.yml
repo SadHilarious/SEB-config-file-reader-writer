@@ -1,0 +1,49 @@
+name: Build and Release
+
+on:
+  release:
+    types: [published, created]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build & Publish Binaries
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '7.0.x'
+
+      - name: Publish x64 Binary
+        run: dotnet publish "On Screen Assessment Exam Player.csproj" -c Release -p:Platform=x64 -o build/x64
+
+      - name: Publish x86 Binary
+        run: dotnet publish "On Screen Assessment Exam Player.csproj" -c Release -p:Platform=x86 -o build/x86
+
+      - name: Rename Binaries
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path artifacts
+          Copy-Item "build/x64/On Screen Assessment Exam Player.exe" -Destination "artifacts/On_Screen_Assessment_Exam_Player_x64.exe"
+          Copy-Item "build/x86/On Screen Assessment Exam Player.exe" -Destination "artifacts/On_Screen_Assessment_Exam_Player_x86.exe"
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: SEB-config-reader-writer-binaries
+          path: artifacts/*
+
+      - name: Upload to Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v3
+        with:
+          files: |
+            artifacts/On_Screen_Assessment_Exam_Player_x64.exe
+            artifacts/On_Screen_Assessment_Exam_Player_x86.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
